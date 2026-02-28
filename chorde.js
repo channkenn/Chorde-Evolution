@@ -126,6 +126,8 @@ window.addEventListener("keyup", (e) => {
       if (chordMaxState === 24 && duration > TOGGLE_THRESHOLD) {
         isNumericLayer = !isNumericLayer;
         showModeFeedback();
+        // ★追加: レイヤーが切り替わったので表を再生成する
+        generateReferenceTable();
       } else {
         const table = isNumericLayer
           ? CONFIG.numericTable
@@ -188,3 +190,67 @@ elements.resetBtn.addEventListener("click", () => {
   elements.log.value = "";
   elements.charDisplay.innerText = "Ready";
 });
+
+/**
+ * リファレンス表の動的生成
+ */
+function generateReferenceTable() {
+  // 現在のレイヤー（ABCかNUMか）に応じてテーブルを切り替える
+  const table = isNumericLayer ? CONFIG.numericTable : CONFIG.defaultTable;
+
+  const leftSidebar = document.getElementById("left-sidebar");
+  const rightSidebar = document.getElementById("right-sidebar");
+
+  // ガード：要素が見つからない場合は何もしない（エラー回避）
+  if (!leftSidebar || !rightSidebar) return;
+
+  // アルファベット順（A-Z）にソート。ただし特殊文字は最後に。
+  const sortedKeys = Object.keys(table).sort((a, b) => {
+    const charA = table[a].toLowerCase();
+    const charB = table[b].toLowerCase();
+
+    const getWeight = (c) => {
+      if (c === "\n") return "zzz3"; // Enter
+      if (c === "\b") return "zzz2"; // BS
+      if (c === " ") return "zzz1"; // Space
+      return c;
+    };
+
+    const wA = getWeight(charA);
+    const wB = getWeight(charB);
+    return wA.localeCompare(wB);
+  });
+
+  const midPoint = Math.ceil(sortedKeys.length / 2);
+
+  const createEntry = (key) => {
+    const val = parseInt(key);
+    let char = table[key];
+
+    // ラベルの変換
+    if (char === "\n") char = "ENT";
+    if (char === "\b") char = "BS";
+    if (char === " ") char = "SPC";
+
+    // 5つの〇を生成 (親、人、中、薬、小)
+    let binaryVisual = "";
+    [16, 8, 4, 2, 1].forEach((bit) => {
+      const isActive = val & bit;
+      binaryVisual += `<span class="dot ${isActive ? "on" : "off"}">〇</span>`;
+    });
+
+    return `<div class="ref-entry">
+              <span class="ref-char">${char}</span>
+              <span class="ref-bits">${binaryVisual}</span>
+            </div>`;
+  };
+
+  leftSidebar.innerHTML = sortedKeys
+    .slice(0, midPoint)
+    .map(createEntry)
+    .join("");
+  rightSidebar.innerHTML = sortedKeys.slice(midPoint).map(createEntry).join("");
+}
+
+// 【重要】DOMの読み込みが終わってから呼び出す
+document.addEventListener("DOMContentLoaded", generateReferenceTable);

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chord-e Core System</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <h1>Chord-e System v1.0</h1>
+        <div id="bit-indicator">
+          <div class="bit" id="bit-16">16<span>Space</span></div>
+          <div class="bit" id="bit-8">8<span>J</span></div>
+          <div class="bit" id="bit-4">4<span>K</span></div>
+          <div class="bit" id="bit-2">2<span>L</span></div>
+          <div class="bit" id="bit-1">1<span>;</span></div>
+        </div>
+      </header>
+
+      <main>
+        <div id="display-container">
+          <div id="current-code">Binary: 00000</div>
+          <div id="current-char">Ready</div>
+        </div>
+        <textarea
+          id="output-log"
+          readonly
+          placeholder="出力結果がここに表示されます..."
+        ></textarea>
+      </main>
+
+      <footer>
+        <button id="btn-reset">ログ消去</button>
+        <p>Default: Space(16), J(8), K(4), L(2), ;(1)</p>
+      </footer>
+    </div>
+    <script src="chorde.js"></script>
+  </body>
+</html>

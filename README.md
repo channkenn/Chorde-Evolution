@@ -6,21 +6,18 @@
 
 🚀 **[Try Chord-e Evolution in your browser](https://channkenn.github.io/Chorde-Evolution/)**
 
-### Standard Layout v1.0 (The Golden Chord)
+### Standard Layout v1.1 (Vowel-Centric)
 
-This is the officially declared mapping for Chord-e, optimized for English/Japanese-Roman frequency and finger ergonomics.
+Optimized for intuitive vowel access and Roman-alphabet/English synergy.
 
 | Chord (Bits)  |  Char  | Description               |
 | :------------ | :----: | :------------------------ |
-| **16**        | **e**  | Thumb (Highest Frequency) |
-| **8**         | **a**  | Index                     |
-| **4**         | **i**  | Middle                    |
-| **2**         | **n**  | Ring                      |
-| **1**         | **s**  | Pinky                     |
-| **24 (16+8)** | **t**  | Thumb + Index             |
-| **12 (8+4)**  | **r**  | Index + Middle            |
-| **6 (4+2)**   | **o**  | Middle + Ring             |
-| **3 (2+1)**   | **l**  | Ring + Pinky              |
+| **16**        | **a**  | Thumb                     |
+| **8**         | **i**  | Index                     |
+| **4**         | **u**  | Middle                    |
+| **2**         | **e**  | Ring                      |
+| **1**         | **o**  | Pinky                     |
+| **24 (16+8)** | **t**  | High Frequency Consonant  |
 | **31 (All)**  | **\n** | **Total Release (Enter)** |
 
 _For the full 32-state mapping, see `chorde.js`._

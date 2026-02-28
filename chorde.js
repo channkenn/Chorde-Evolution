@@ -1,5 +1,5 @@
 /**
- * Chord-e Core Engine v1.8 (Master Edition)
+ * Chord-e Core Engine v1.8.2 (Master Edition)
  * --------------------------------------------------
  * [Concept] 150-Year QWERTY Constraint Evolution
  * [Layout]  Vowel-Centric (Thumb: e)
@@ -27,6 +27,7 @@ const CONFIG = {
   },
 
   // Default Layer (Alphabet & Essential Functions)
+  // Default Layer (Alphabet & Essential Functions)
   defaultTable: {
     16: "e",
     8: "a",
@@ -42,7 +43,7 @@ const CONFIG = {
     5: "h",
     18: "y",
     9: "w",
-    17: "d",
+    17: "d", // ← ここが17
     28: "g",
     14: "b",
     7: "p",
@@ -53,11 +54,13 @@ const CONFIG = {
     30: "x",
     27: "z",
     29: "q", // 29: Master Gate (Ring isolation)
+    25: "j", // ★復活：25（親・人・小）に配置
     15: "\b", // BackSpace (Thumb isolation)
     23: " ", // Space
     19: ".",
-    17: ",",
+    21: ",", // ★重複解消：17から21に変更（例）
     31: "\n", // Total Release
+    guide_24: "Tras", // ★末尾のカンマも補完
   },
 
   // Numeric Layer (Toggled by 24 long-press)
@@ -76,6 +79,7 @@ const CONFIG = {
     25: "?",
     19: ".",
     31: "\n",
+    guide_24: "Tras", // ★追加：ガイド用
   },
 };
 
@@ -126,7 +130,7 @@ window.addEventListener("keyup", (e) => {
       if (chordMaxState === 24 && duration > TOGGLE_THRESHOLD) {
         isNumericLayer = !isNumericLayer;
         showModeFeedback();
-        // ★追加: レイヤーが切り替わったので表を再生成する
+        // ★レイヤーが切り替わったので表を再生成する
         generateReferenceTable();
       } else {
         const table = isNumericLayer
@@ -134,7 +138,10 @@ window.addEventListener("keyup", (e) => {
           : CONFIG.defaultTable;
         const char = table[chordMaxState] || "";
 
-        processOutput(char);
+        // guide_24 は出力しない
+        if (char !== "Tras") {
+          processOutput(char);
+        }
       }
 
       // Reset for next stroke
@@ -186,30 +193,35 @@ function showModeFeedback() {
   }, 1000);
 }
 
-elements.resetBtn.addEventListener("click", () => {
-  elements.log.value = "";
-  elements.charDisplay.innerText = "Ready";
+// 初期化時に要素を取得する
+document.addEventListener("DOMContentLoaded", () => {
+  elements.leftSidebar = document.getElementById("left-sidebar");
+  elements.rightSidebar = document.getElementById("right-sidebar");
+
+  elements.resetBtn.addEventListener("click", () => {
+    elements.log.value = "";
+    elements.charDisplay.innerText = "Ready";
+  });
+
+  generateReferenceTable();
 });
 
 /**
  * リファレンス表の動的生成
  */
 function generateReferenceTable() {
-  // 現在のレイヤー（ABCかNUMか）に応じてテーブルを切り替える
   const table = isNumericLayer ? CONFIG.numericTable : CONFIG.defaultTable;
+  const leftSidebar = elements.leftSidebar;
+  const rightSidebar = elements.rightSidebar;
 
-  const leftSidebar = document.getElementById("left-sidebar");
-  const rightSidebar = document.getElementById("right-sidebar");
-
-  // ガード：要素が見つからない場合は何もしない（エラー回避）
   if (!leftSidebar || !rightSidebar) return;
 
-  // アルファベット順（A-Z）にソート。ただし特殊文字は最後に。
   const sortedKeys = Object.keys(table).sort((a, b) => {
     const charA = table[a].toLowerCase();
     const charB = table[b].toLowerCase();
 
     const getWeight = (c) => {
+      if (c === "tras") return "zzz4"; // 最下部
       if (c === "\n") return "zzz3"; // Enter
       if (c === "\b") return "zzz2"; // BS
       if (c === " ") return "zzz1"; // Space
@@ -224,23 +236,27 @@ function generateReferenceTable() {
   const midPoint = Math.ceil(sortedKeys.length / 2);
 
   const createEntry = (key) => {
-    const val = parseInt(key);
+    // ガイド用キーなら数値24として扱う
+    const val = key === "guide_24" ? 24 : parseInt(key);
     let char = table[key];
 
     // ラベルの変換
+    if (char === "Tras") char = "TR(24)";
     if (char === "\n") char = "ENT";
     if (char === "\b") char = "BS";
     if (char === " ") char = "SPC";
 
-    // 5つの〇を生成 (親、人、中、薬、小)
     let binaryVisual = "";
     [16, 8, 4, 2, 1].forEach((bit) => {
       const isActive = val & bit;
       binaryVisual += `<span class="dot ${isActive ? "on" : "off"}">〇</span>`;
     });
 
+    // 特殊ラベルTR(24)の色を変更
+    const charColor = char === "TR(24)" ? "color: #ff9800;" : "";
+
     return `<div class="ref-entry">
-              <span class="ref-char">${char}</span>
+              <span class="ref-char" style="${charColor}">${char}</span>
               <span class="ref-bits">${binaryVisual}</span>
             </div>`;
   };
@@ -251,6 +267,3 @@ function generateReferenceTable() {
     .join("");
   rightSidebar.innerHTML = sortedKeys.slice(midPoint).map(createEntry).join("");
 }
-
-// 【重要】DOMの読み込みが終わってから呼び出す
-document.addEventListener("DOMContentLoaded", generateReferenceTable);

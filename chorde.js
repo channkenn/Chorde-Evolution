@@ -1,33 +1,43 @@
 /**
- * Chord-e Core Engine v1.5
- * 黄金配列 v1.1 + トグル式Tras (時間判定による't'との打ち分け)
+ * Chord-e Core Engine v1.8 (Master Edition)
+ * --------------------------------------------------
+ * [Concept] 150-Year QWERTY Constraint Evolution
+ * [Layout]  Vowel-Centric (Thumb: e)
+ * [Features]
+ * - Tras: Toggle Numeric Layer (Long-press 24)
+ * - BS: BackSpace (Thumb isolation: 15)
+ * - Master Gate: 'q' (Ring finger isolation: 29)
+ * --------------------------------------------------
  */
 
 const CONFIG = {
   mapping: {
+    // Desktop Keys
     Space: 16,
     KeyJ: 8,
     KeyK: 4,
     KeyL: 2,
     Semicolon: 1,
+    // Numpad Support
     Numpad0: 16,
     Numpad1: 8,
     Numpad2: 4,
     Numpad3: 2,
     NumpadDecimal: 1,
   },
-  // 通常レイヤー
+
+  // Default Layer (Alphabet & Essential Functions)
   defaultTable: {
-    16: "a",
-    8: "i",
-    4: "u",
-    2: "e",
-    1: "o",
+    16: "e",
+    8: "a",
+    4: "i",
+    2: "u",
+    1: "o", // Vowels
     24: "t",
     12: "n",
     6: "s",
     3: "r",
-    20: "k",
+    20: "k", // High frequency
     10: "m",
     5: "h",
     18: "y",
@@ -41,16 +51,16 @@ const CONFIG = {
     22: "c",
     11: "l",
     30: "x",
-    15: "j",
-    29: "q",
     27: "z",
-    23: " ",
-    21: "!",
-    25: "?",
+    29: "q", // 29: Master Gate (Ring isolation)
+    15: "\b", // BackSpace (Thumb isolation)
+    23: " ", // Space
     19: ".",
-    31: "\n",
+    17: ",",
+    31: "\n", // Total Release
   },
-  // 数字レイヤー (トグル後)
+
+  // Numeric Layer (Toggled by 24 long-press)
   numericTable: {
     16: "0",
     8: "1",
@@ -62,15 +72,19 @@ const CONFIG = {
     3: "7",
     20: "8",
     10: "9",
+    21: "!",
+    25: "?",
+    19: ".",
     31: "\n",
   },
 };
 
 let currentChord = 0;
+let chordMaxState = 0; // Latch for preventing double-fire on keyup
 let activeKeys = new Set();
 let isNumericLayer = false;
 let pressStartTime = 0;
-const TOGGLE_THRESHOLD = 300; // 300ms以上の長押しでレイヤー切り替え
+const TOGGLE_THRESHOLD = 500; // ms
 
 const elements = {
   bits: document.querySelectorAll(".bit"),
@@ -80,19 +94,20 @@ const elements = {
   resetBtn: document.getElementById("btn-reset"),
 };
 
-// 入力監視
+// Input Handling
 window.addEventListener("keydown", (e) => {
   const bit = CONFIG.mapping[e.code];
   if (bit && !activeKeys.has(e.code)) {
     e.preventDefault();
 
-    // 最初のキーが押された瞬間にタイマー開始
     if (activeKeys.size === 0) {
       pressStartTime = Date.now();
+      chordMaxState = 0;
     }
 
     activeKeys.add(e.code);
     currentChord |= bit;
+    chordMaxState |= bit; // Record the maximum chord reached
     updateUI();
   }
 });
@@ -101,34 +116,47 @@ window.addEventListener("keyup", (e) => {
   const bit = CONFIG.mapping[e.code];
   if (bit) {
     e.preventDefault();
+    activeKeys.delete(e.code);
 
-    // 全ての指が離れたタイミングで確定
-    if (activeKeys.size === 1) {
+    // Process only when ALL keys are released
+    if (activeKeys.size === 0) {
       const duration = Date.now() - pressStartTime;
-      const table = isNumericLayer ? CONFIG.numericTable : CONFIG.defaultTable;
 
-      // 「24」の入力かつ、閾値を超えた長押しならトグル
-      if (currentChord === 24 && duration > TOGGLE_THRESHOLD) {
+      // Check for Layer Toggle (24: Thumb + Index)
+      if (chordMaxState === 24 && duration > TOGGLE_THRESHOLD) {
         isNumericLayer = !isNumericLayer;
         showModeFeedback();
       } else {
-        // 通常の文字出力
-        const char = table[currentChord] || "";
-        if (char) {
-          elements.log.value += char;
-          elements.charDisplay.innerText = char === "\n" ? "Enter" : char;
-          elements.log.scrollTop = elements.log.scrollHeight;
-        }
-      }
-    }
+        const table = isNumericLayer
+          ? CONFIG.numericTable
+          : CONFIG.defaultTable;
+        const char = table[chordMaxState] || "";
 
-    activeKeys.delete(e.code);
-    if (activeKeys.size === 0) {
+        processOutput(char);
+      }
+
+      // Reset for next stroke
       currentChord = 0;
+      chordMaxState = 0;
       updateUI();
     }
   }
 });
+
+function processOutput(char) {
+  if (!char) return;
+
+  if (char === "\b") {
+    // Execute BackSpace
+    elements.log.value = elements.log.value.slice(0, -1);
+    elements.charDisplay.innerText = "BS";
+  } else {
+    // Normal output
+    elements.log.value += char;
+    elements.charDisplay.innerText = char === "\n" ? "Enter" : char;
+    elements.log.scrollTop = elements.log.scrollHeight;
+  }
+}
 
 function updateUI() {
   elements.bits.forEach((el) => {
@@ -136,19 +164,19 @@ function updateUI() {
     el.classList.toggle("active", currentChord & val);
   });
 
+  const display = elements.codeDisplay;
   if (isNumericLayer) {
-    elements.codeDisplay.innerText = "LAYER: NUMERIC";
-    elements.codeDisplay.style.color = "#ff9800";
+    display.innerText = "LAYER: NUMERIC";
+    display.style.color = "#ff9800";
   } else {
-    elements.codeDisplay.innerText = `Binary: ${currentChord.toString(2).padStart(5, "0")}`;
-    elements.codeDisplay.style.color = "";
+    display.innerText = `Binary: ${currentChord.toString(2).padStart(5, "0")}`;
+    display.style.color = "";
   }
 }
 
 function showModeFeedback() {
   const modeName = isNumericLayer ? "NUM MODE" : "ABC MODE";
   elements.charDisplay.innerText = modeName;
-  // 視覚的なフィードバックを強調
   elements.charDisplay.style.color = "#ff9800";
   setTimeout(() => {
     elements.charDisplay.style.color = "";
